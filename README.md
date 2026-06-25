@@ -5,7 +5,7 @@ Quick preview, explore, and convert tabular data files from the terminal. Powere
 ## Install
 
 ```bash
-pip install -e .
+pip install .
 ```
 
 Or with pixi:
