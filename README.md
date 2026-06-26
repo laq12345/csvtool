@@ -7,7 +7,7 @@ Quick preview, explore, and convert tabular data files from the terminal. Powere
 **From GitHub Release** (recommended):
 
 ```bash
-pip install https://github.com/laq12345/dv/releases/latest/download/dv-0.1.0-py3-none-any.whl
+pip install https://github.com/laq12345/dv/releases/latest/download/dv-0.2.0-py3-none-any.whl
 ```
 
 **From source**:
