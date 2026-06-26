@@ -4,11 +4,21 @@ Quick preview, explore, and convert tabular data files from the terminal. Powere
 
 ## Install
 
+**From GitHub Release** (recommended):
+
 ```bash
+pip install https://github.com/laq12345/dv/releases/latest/download/dv-0.1.0-py3-none-any.whl
+```
+
+**From source**:
+
+```bash
+git clone https://github.com/laq12345/dv.git
+cd dv
 pip install .
 ```
 
-Or with pixi:
+**With pixi**:
 
 ```bash
 pixi install
