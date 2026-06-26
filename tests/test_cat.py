@@ -91,7 +91,7 @@ class TestCat:
         file_a.write_text("col1,col2\n1,2\n3,4\n")
         file_b.write_text("col2,col1\n5,6\n7,8\n")
         result = runner.invoke(
-            app, ["cat", str(file_a), str(file_b)]
+            app, ["cat", str(file_a), str(file_b), "-p", "0"]
         )
         assert result.exit_code == 0
         assert "4 rows" in result.stdout

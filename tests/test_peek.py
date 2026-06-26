@@ -22,7 +22,7 @@ class TestPeekStructure:
         assert "5 rows" in result.stdout
 
     def test_shows_format(self):
-        result = runner.invoke(app, ["peek", str(FIXTURES / "sample.csv")])
+        result = runner.invoke(app, ["peek", str(FIXTURES / "sample.csv"), "-I"])
         assert "CSV" in result.stdout.upper()
 
 
@@ -44,7 +44,8 @@ class TestPeekStats:
     def test_stats(self):
         result = runner.invoke(app, ["peek", str(FIXTURES / "sample.csv"), "-s"])
         assert result.exit_code == 0
-        assert "count" in result.stdout.lower() or "column" in result.stdout.lower()
+        output = result.stdout.lower()
+        assert "count" in output or "column" in output or "approx" in output
 
     def test_stats_long_flag(self):
         result = runner.invoke(app, ["peek", str(FIXTURES / "sample.csv"), "--stats"])
@@ -84,3 +85,28 @@ class TestPeekStdin:
         )
         assert result.exit_code == 0
         assert "2 rows" in result.stdout or "a" in result.stdout
+
+
+class TestPeekColumns:
+    def test_columns_selection(self):
+        result = runner.invoke(
+            app,
+            ["peek", str(FIXTURES / "sample.csv"), "-c", "id,name", "-p", "2"],
+        )
+        assert result.exit_code == 0
+        assert "name" in result.stdout
+        assert "score" not in result.stdout
+
+    def test_sort_ascending(self):
+        result = runner.invoke(
+            app,
+            ["peek", str(FIXTURES / "sample.csv"), "--sort", "age", "-p", "3"],
+        )
+        assert result.exit_code == 0
+
+    def test_sort_descending(self):
+        result = runner.invoke(
+            app,
+            ["peek", str(FIXTURES / "sample.csv"), "--sort", "age DESC", "-p", "3"],
+        )
+        assert result.exit_code == 0

@@ -57,19 +57,15 @@ def detect_format(file_path: Path) -> str:
 
 
 def init_excel_support(con: duckdb.DuckDBPyConnection) -> None:
-    """Install and load DuckDB excel extension if not already available.
-
-    Args:
-        con: Active DuckDB connection.
-    """
-    try:
-        con.sql("LOAD excel")
-        logger.debug("excel extension loaded")
-    except Exception:
-        logger.debug("Installing excel extension...")
-        con.sql("INSTALL excel")
-        con.sql("LOAD excel")
-        logger.debug("excel extension installed and loaded")
+    """Install and load DuckDB excel and spatial extensions."""
+    for ext in ("excel", "spatial"):
+        try:
+            con.sql(f"LOAD {ext}")
+        except Exception:
+            logger.debug("Installing {} extension...", ext)
+            con.sql(f"INSTALL {ext}")
+            con.sql(f"LOAD {ext}")
+            logger.debug("{} extension installed and loaded", ext)
 
 
 def register_file(

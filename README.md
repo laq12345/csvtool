@@ -27,11 +27,14 @@ pixi install
 ## Quick start
 
 ```bash
-# Peek at a file
+# Default: first 10 rows
 dv data.csv
 
-# First 20 rows
-dv data.csv -p 20
+# Structure overview (columns, types, NULLs)
+dv data.csv -I
+
+# Select columns, sort, limit
+dv data.csv -c gene,avg_log2FC --sort "avg_log2FC DESC" -p 20
 
 # Column statistics
 dv data.csv -s
@@ -45,17 +48,37 @@ cat data.csv | dv -p 10
 ### `peek` — preview and explore
 
 ```bash
-dv data.csv              # Structure: columns, types, row count
-dv data.csv -p 10        # First 10 rows
-dv data.csv -s           # Column statistics (min/max/mean/unique/null)
-dv -v data.csv           # Debug logging
+dv data.csv                    # First 10 rows (default)
+dv data.csv -I                 # Structure: columns, types, NULL count
+dv data.csv -p 50              # First 50 rows
+dv data.csv -c id,name -p 10   # Select columns
+dv data.csv --sort "score DESC" # Sort by column
+dv data.csv -s                 # Column statistics
+dv -v data.csv                 # Debug logging
+```
+
+### `search` — regex search
+
+```bash
+dv search "TP53" data.csv                    # Search all text columns
+dv search "TP53|BRCA1" data.csv --in gene    # Search specific column
+dv search "TP53" data.csv -i                 # Case-insensitive
+dv search "p_value" data.csv -l              # Literal text (not regex)
+```
+
+### `rename` — rename columns
+
+```bash
+dv rename data.csv column0=gene                # Rename one column
+dv rename data.csv "id=gene_id,name=symbol"    # Rename multiple
+dv rename data.csv p_val_adj=padj -o cleaned.csv
 ```
 
 ### `convert` — format conversion
 
 ```bash
 dv convert a.csv b.parquet
-dv convert a.csv b.json
+dv convert a.csv b.xlsx
 dv convert a.parquet b.csv --where "score > 90"
 ```
 

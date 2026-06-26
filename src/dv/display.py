@@ -70,10 +70,22 @@ def display_structure(
     col_table.add_column("Column", style="cyan")
     col_table.add_column("Type")
     col_table.add_column("Nullable")
+    col_table.add_column("NULLs")
 
-    for row in desc_result:
+    # Build single null-count query for all columns
+    null_parts = [
+        f"COUNT(CASE WHEN \"{row[0]}\" IS NULL THEN 1 END)" for row in desc_result
+    ]
+    null_counts = con.sql(
+        f"SELECT {', '.join(null_parts)} FROM data"
+    ).fetchone() if null_parts else []
+
+    for i, row in enumerate(desc_result):
         col_name, col_type, nullable = row[0], row[1], row[2]
-        col_table.add_row(str(col_name), str(col_type), str(nullable))
+        null_count = null_counts[i] if null_counts else 0
+        null_pct = (null_count / row_count * 100) if row_count > 0 else 0
+        null_str = f"{null_count} ({null_pct:.1f}%)" if null_count > 0 else "0"
+        col_table.add_row(str(col_name), str(col_type), str(nullable), null_str)
 
     # Summary stats in subtitle
     col_count = len(desc_result)
