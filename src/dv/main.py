@@ -49,7 +49,7 @@ def _format_size(size_bytes: int) -> str:
     return f"{size_bytes:.1f} TB"
 
 
-def _resolve_output(path: str, con: duckdb.DuckDBPyConnection | None = None) -> tuple[Path, str]:
+def _resolve_output(path: str, con: duckdb.DuckDBPyConnection | None = None, force: bool = False) -> tuple[Path, str]:
     """Validate output path and return (resolved_path, copy_opts_string)."""
     dst_path = Path(path)
     dst_ext = dst_path.suffix.lower()
@@ -63,6 +63,11 @@ def _resolve_output(path: str, con: duckdb.DuckDBPyConnection | None = None) -> 
         raise typer.Exit(code=1)
     if con and dst_ext in (".xls", ".xlsx"):
         init_excel_support(con)
+    if dst_path.exists() and not force:
+        response = input(f"Overwrite '{dst_path.name}'? [y/N] ")
+        if response.lower() not in ("y", "yes"):
+            logger.info("Aborted.")
+            raise typer.Exit(code=0)
     dst_path.parent.mkdir(parents=True, exist_ok=True)
     return dst_path, copy_opts
 
@@ -168,6 +173,8 @@ def peek(
     except ValueError as e:
         logger.error(str(e))
         raise typer.Exit(code=1)
+    except typer.Exit:
+        raise
     except Exception as e:
         logger.error("Failed to process file: {}", e)
         raise typer.Exit(code=1)
@@ -182,6 +189,7 @@ def convert(
     src: str = typer.Argument(..., help="Source file path"),
     dst: str = typer.Argument(..., help="Destination file path"),
     where: str = typer.Option(None, "--where", help="SQL WHERE clause to filter rows"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
 ):
     """Convert a data file to another format.
 
@@ -196,9 +204,7 @@ def convert(
 
     con = duckdb.connect()
     try:
-        dst_path, copy_opts = _resolve_output(dst, con)
-        if dst_path.exists():
-            logger.warning("Overwriting existing file: {}", dst_path)
+        dst_path, copy_opts = _resolve_output(dst, con, force=yes)
         register_file(con, src_path)
         dst_abs = str(dst_path.resolve())
         query = (
@@ -208,6 +214,8 @@ def convert(
         )
         con.sql(query)
         logger.info("Converted {} -> {}", src_path.name, dst_path.name)
+    except typer.Exit:
+        raise
     except Exception as e:
         logger.error("Conversion failed: {}", e)
         raise typer.Exit(code=1)
@@ -223,6 +231,7 @@ def sql(
     output: str = typer.Option(
         None, "-o", "--output", help="Save results to file (format from extension)"
     ),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
 ):
     """Run a SQL query directly on data files.
 
@@ -248,7 +257,7 @@ dv sql "SELECT * FROM 'data.csv'" -o result.parquet
                 register_file(con, Path(tmp_path), "stdin")
         _find_and_register_files(con, query)
         if output:
-            dst_path, copy_opts = _resolve_output(output, con)
+            dst_path, copy_opts = _resolve_output(output, con, force=yes)
             dst_abs = str(dst_path.resolve())
             con.sql(f"CREATE OR REPLACE TABLE _copy_tmp AS {query}")
             con.sql(f"COPY (SELECT * FROM _copy_tmp) TO '{dst_abs}' ({copy_opts})")
@@ -256,6 +265,8 @@ dv sql "SELECT * FROM 'data.csv'" -o result.parquet
             logger.info("Saved to {}", dst_path.name)
         else:
             display_query_result(con, query)
+    except typer.Exit:
+        raise
     except Exception as e:
         logger.error("SQL execution failed: {}", e)
         raise typer.Exit(code=1)
@@ -273,6 +284,7 @@ def cat(
     output: str = typer.Option(
         None, "-o", "--output", help="Save to file (format from extension)"
     ),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
 ):
     """Concatenate multiple data files by row (UNION ALL BY NAME).
 
@@ -308,7 +320,7 @@ dv cat part*.csv -o merged.parquet
         total_size = _format_size(sum(Path(f).stat().st_size for f in files))
 
         if output:
-            dst_path, copy_opts = _resolve_output(output, con)
+            dst_path, copy_opts = _resolve_output(output, con, force=yes)
             dst_abs = str(dst_path.resolve())
             con.sql(f"COPY (SELECT * FROM data) TO '{dst_abs}' ({copy_opts})")
             logger.info("Saved to {}", dst_path.name)
@@ -346,6 +358,7 @@ def join(
     output: str = typer.Option(
         None, "-o", "--output", help="Save to file (format from extension)"
     ),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
 ):
     """Join two data files by a common column.
 
@@ -390,10 +403,15 @@ dv join a.csv b.csv --on id --how left -o joined.parquet
         join_col_raw = _get_join_column(on, a_cols, b_cols)
 
         # Build explicit column list to avoid duplicate column errors
-        select_cols = [f"a.{c}" for c in a_cols]
+        def _q(col, tbl):
+            """Quote col with tbl prefix, handling special chars."""
+            c = f'"{col}"' if "." in col else col
+            return f"{tbl}.{c}"
+
+        select_cols = [_q(c, "a") for c in a_cols]
         for c in b_cols:
             if c != join_col_raw:
-                select_cols.append(f"b.{c} AS {c}_2" if c in a_cols else f"b.{c}")
+                select_cols.append(f"{_q(c, 'b')} AS \"{c}_2\"" if c in a_cols else _q(c, "b"))
 
         col_list = ", ".join(select_cols)
         con.sql(
@@ -405,7 +423,7 @@ dv join a.csv b.csv --on id --how left -o joined.parquet
         count = con.sql("SELECT COUNT(*) FROM data").fetchone()[0]
 
         if output:
-            dst_path, copy_opts = _resolve_output(output, con)
+            dst_path, copy_opts = _resolve_output(output, con, force=yes)
             dst_abs = str(dst_path.resolve())
             con.sql(f"COPY (SELECT * FROM data) TO '{dst_abs}' ({copy_opts})")
             logger.info("Saved to {}", dst_path.name)
@@ -439,6 +457,7 @@ def search(
     literal: bool = typer.Option(False, "-l", "--literal", help="Treat pattern as literal text, not regex"),
     preview: int = typer.Option(10, "-p", "--preview", help="Show first N matching rows"),
     output: str = typer.Option(None, "-o", "--output", help="Save results to file"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
 ):
     """Search for rows matching a regex pattern.
 
@@ -494,7 +513,7 @@ def search(
         con.sql(f"CREATE OR REPLACE VIEW data AS SELECT * FROM _src {where}")
 
         if output:
-            dst_path, copy_opts = _resolve_output(output, con)
+            dst_path, copy_opts = _resolve_output(output, con, force=yes)
             dst_abs = str(dst_path.resolve())
             con.sql(f"COPY (SELECT * FROM data) TO '{dst_abs}' ({copy_opts})")
             logger.info("Saved to {}", dst_path.name)
@@ -517,6 +536,7 @@ def rename(
     mapping: str = typer.Argument(..., help="Rename mapping: old=new or old1=new1,old2=new2"),
     output: str = typer.Option(None, "-o", "--output", help="Save to file"),
     info: bool = typer.Option(False, "-I", "--info", help="Show structure overview instead of preview"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
 ):
     """Rename columns in a data file.
 
@@ -559,7 +579,7 @@ def rename(
         con.sql(f"CREATE OR REPLACE VIEW data AS SELECT {select_str} FROM _src")
 
         if output:
-            dst_path, copy_opts = _resolve_output(output, con)
+            dst_path, copy_opts = _resolve_output(output, con, force=yes)
             dst_abs = str(dst_path.resolve())
             con.sql(f"COPY (SELECT * FROM data) TO '{dst_abs}' ({copy_opts})")
             logger.info("Saved to {}", dst_path.name)
@@ -595,15 +615,18 @@ def _get_join_column(on: str | None, a_cols: list[str], b_cols: list[str]) -> st
 def _resolve_join_on(con: duckdb.DuckDBPyConnection, on: str | None) -> str:
     """Resolve the ON/USING clause for a JOIN.
 
-    Returns a SQL fragment like "USING (gene)" or "ON a.probe = b.gene".
+    Returns a SQL fragment like 'USING ("col.1")' or 'ON a."col.1" = b."gene"'.
     """
+    def qc(col: str) -> str:
+        return f'"{col}"' if "." in col else col
+
     if on is not None and "=" in on:
         parts = on.split("=", 1)
         left_col, right_col = parts[0].strip(), parts[1].strip()
-        return f"ON a.{left_col} = b.{right_col}"
+        return f"ON a.{qc(left_col)} = b.{qc(right_col)}"
 
     if on is not None:
-        return f"USING ({on})"
+        return f"USING ({qc(on)})"
 
     a_cols = {
         r[0]
@@ -623,7 +646,7 @@ def _resolve_join_on(con: duckdb.DuckDBPyConnection, on: str | None) -> str:
         logger.error("No common columns found between the two files. Use --on to specify the join columns.")
         raise typer.Exit(code=1)
     if len(common) == 1:
-        return f"USING ({common[0]})"
+        return f"USING ({qc(common[0])})"
 
     logger.error(
         "Multiple common columns found: {}. Use --on to specify which one to join on.",
