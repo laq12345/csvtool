@@ -7,14 +7,14 @@
 **从 GitHub Release 安装**（推荐）：
 
 ```bash
-pip install https://github.com/laq12345/dv/releases/latest/download/dv-0.2.0-py3-none-any.whl
+pip install https://github.com/laq12345/csvtool/releases/latest/download/dv-0.3.0-py3-none-any.whl
 ```
 
 **从源码安装**：
 
 ```bash
-git clone https://github.com/laq12345/dv.git
-cd dv
+git clone https://github.com/laq12345/csvtool.git
+cd csvtool
 pip install .
 ```
 
