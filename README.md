@@ -1,16 +1,16 @@
-# dv — terminal data file toolkit
+# dv — 终端表格数据工具
 
-Quick preview, explore, and convert tabular data files from the terminal. Powered by DuckDB.
+在终端快速预览、探查、转换各种表格数据文件。基于 DuckDB 引擎。
 
-## Install
+## 安装
 
-**From GitHub Release** (recommended):
+**从 GitHub Release 安装**（推荐）：
 
 ```bash
 pip install https://github.com/laq12345/dv/releases/latest/download/dv-0.2.0-py3-none-any.whl
 ```
 
-**From source**:
+**从源码安装**：
 
 ```bash
 git clone https://github.com/laq12345/dv.git
@@ -18,63 +18,63 @@ cd dv
 pip install .
 ```
 
-**With pixi**:
+**用 pixi**：
 
 ```bash
 pixi install
 ```
 
-## Quick start
+## 快速开始
 
 ```bash
-# Default: first 10 rows
+# 默认：显示前 10 行
 dv data.csv
 
-# Structure overview (columns, types, NULLs)
+# 结构概览（列名、类型、NULL 数）
 dv data.csv -I
 
-# Select columns, sort, limit
+# 选列、排序、限制行数
 dv data.csv -c gene,avg_log2FC --sort "avg_log2FC DESC" -p 20
 
-# Column statistics
+# 列统计
 dv data.csv -s
 
-# Pipe data
+# 管道输入
 cat data.csv | dv -p 10
 ```
 
-## Commands
+## 命令
 
-### `peek` — preview and explore
+### `peek` — 数据预览
 
 ```bash
-dv data.csv                    # First 10 rows (default)
-dv data.csv -I                 # Structure: columns, types, NULL count
-dv data.csv -p 50              # First 50 rows
-dv data.csv -c id,name -p 10   # Select columns
-dv data.csv --sort "score DESC" # Sort by column
-dv data.csv -s                 # Column statistics
-dv -v data.csv                 # Debug logging
+dv data.csv                    # 前 10 行（默认）
+dv data.csv -I                 # 结构面板：列名、类型、NULL 数
+dv data.csv -p 50              # 前 50 行
+dv data.csv -c id,name -p 10   # 选列查看
+dv data.csv --sort "score DESC" # 排序预览
+dv data.csv -s                 # 列统计
+dv -v data.csv                 # 调试日志
 ```
 
-### `search` — regex search
+### `search` — 正则搜索
 
 ```bash
-dv search "TP53" data.csv                    # Search all text columns
-dv search "TP53|BRCA1" data.csv --in gene    # Search specific column
-dv search "TP53" data.csv -i                 # Case-insensitive
-dv search "p_value" data.csv -l              # Literal text (not regex)
+dv search "TP53" data.csv                    # 搜索所有文本列
+dv search "TP53|BRCA1" data.csv --in gene    # 搜索指定列
+dv search "TP53" data.csv -i                 # 忽略大小写
+dv search "p_value" data.csv -l              # 字面量搜索（非正则）
 ```
 
-### `rename` — rename columns
+### `rename` — 列重命名
 
 ```bash
-dv rename data.csv column0=gene                # Rename one column
-dv rename data.csv "id=gene_id,name=symbol"    # Rename multiple
+dv rename data.csv column0=gene                # 重命名一列
+dv rename data.csv "id=gene_id,name=symbol"    # 重命名多列
 dv rename data.csv p_val_adj=padj -o cleaned.csv
 ```
 
-### `convert` — format conversion
+### `convert` — 格式转换
 
 ```bash
 dv convert a.csv b.parquet
@@ -82,9 +82,9 @@ dv convert a.csv b.xlsx
 dv convert a.parquet b.csv --where "score > 90"
 ```
 
-Output format is determined by file extension.
+输出格式由文件扩展名自动推断。
 
-### `cat` — concatenate files by row
+### `cat` — 多文件拼接
 
 ```bash
 dv cat a.csv b.csv c.csv
@@ -92,38 +92,38 @@ dv cat part*.csv -o merged.parquet
 dv cat a.csv b.csv -p 20
 ```
 
-Uses `UNION ALL BY NAME` — columns are aligned by name, missing columns filled with NULL.
+按列名对齐（`UNION ALL BY NAME`），列数不同的文件缺失列自动填 NULL。
 
-### `join` — merge two files by column
+### `join` — 两表合并
 
 ```bash
-dv join a.csv b.csv                        # Auto-detect common column
-dv join a.csv b.csv --on gene              # Same-named column
-dv join a.csv b.csv --on probe=gene        # Different column names
+dv join a.csv b.csv                        # 自动检测共有列
+dv join a.csv b.csv --on gene              # 同名列合并
+dv join a.csv b.csv --on probe=gene        # 不同名列合并
 dv join a.csv b.csv --on id --how left -o joined.parquet
 ```
 
-Supports `inner` (default), `left`, `right`, `outer`.
+支持 `inner`（默认）、`left`、`right`、`outer`。
 
-### `sql` — raw SQL queries
+### `sql` — 原始 SQL 查询
 
 ```bash
 dv sql "FROM 'data.csv' SELECT * WHERE score > 90"
 dv sql "SELECT gene, AVG(expr) FROM 'data.csv' GROUP BY gene" -o result.parquet
 ```
 
-## Supported formats
+## 支持格式
 
-| Format | Extensions |
-|--------|-----------|
+| 格式 | 扩展名 |
+|------|--------|
 | CSV / TSV | `.csv` `.tsv` `.txt` `.tab` |
 | Parquet | `.parquet` |
 | JSON / JSONL | `.json` `.jsonl` |
 | Excel | `.xlsx` `.xls` |
 
-## Tech stack
+## 技术栈
 
-- [DuckDB](https://duckdb.org/) — data engine
-- [Typer](https://typer.tiangolo.com/) — CLI framework
-- [Rich](https://rich.readthedocs.io/) — terminal output
-- [Loguru](https://github.com/Delgan/loguru) — logging
+- [DuckDB](https://duckdb.org/) — 数据引擎
+- [Typer](https://typer.tiangolo.com/) — CLI 框架
+- [Rich](https://rich.readthedocs.io/) — 终端输出
+- [Loguru](https://github.com/Delgan/loguru) — 日志

@@ -18,7 +18,7 @@ from dv.display import (
 
 app = typer.Typer(
     name="dv",
-    help="Preview, explore, and convert tabular data files from the terminal.",
+    help="在终端快速预览、探查、转换表格数据文件。",
 )
 
 COPY_FORMATS: dict[str, str] = {
@@ -88,22 +88,22 @@ def _find_and_register_files(con: duckdb.DuckDBPyConnection, query: str) -> None
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable debug logging"),
-    preview: int = typer.Option(10, "-p", "--preview", help="Show first N rows"),
-    stats: bool = typer.Option(False, "-s", "--stats", help="Show column statistics"),
-    columns: str = typer.Option(None, "-c", "--columns", help="Comma-separated columns to show"),
-    sort: str = typer.Option(None, "--sort", help="Sort by column (ASC/DESC)"),
-    info: bool = typer.Option(False, "-I", "--info", help="Show structure overview instead of preview"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="启用调试日志"),
+    preview: int = typer.Option(10, "-p", "--preview", help="显示前 N 行"),
+    stats: bool = typer.Option(False, "-s", "--stats", help="显示列统计"),
+    columns: str = typer.Option(None, "-c", "--columns", help="逗号分隔的列名"),
+    sort: str = typer.Option(None, "--sort", help="按列排序（ASC/DESC）"),
+    info: bool = typer.Option(False, "-I", "--info", help="显示结构概览，替代默认预览"),
 ):
-    """dv - Terminal data file tool powered by DuckDB.
+    """dv - 终端表格数据工具，基于 DuckDB。
 
-    Examples:
-        dv data.csv                 Show file structure (auto-peek)
-        dv peek data.csv -p 10      Show first 10 rows
-        dv convert a.csv b.parquet  Convert CSV to Parquet
+    示例：
+        dv data.csv                 查看文件结构（自动 peek）
+        dv peek data.csv -p 10      显示前 10 行
+        dv convert a.csv b.parquet  CSV 转 Parquet
         dv sql "FROM 'data.csv' SELECT * LIMIT 5"
-        cat data.csv | dv           Pipe data to auto-peek
-        cat data.csv | dv -p 10     Pipe with preview
+        cat data.csv | dv           管道数据自动预览
+        cat data.csv | dv -p 10     管道 + 预览
     """
     setup_logging(verbose)
     if ctx.invoked_subcommand is None and not sys.stdin.isatty():
@@ -112,22 +112,22 @@ def main(
 
 @app.command()
 def peek(
-    file: str = typer.Argument(None, help="Path to the data file (or stdin if omitted)"),
-    preview: int = typer.Option(10, "-p", "--preview", help="Show first N rows"),
-    stats: bool = typer.Option(False, "-s", "--stats", help="Show column statistics"),
-    columns: str = typer.Option(None, "-c", "--columns", help="Comma-separated columns to show"),
-    sort: str = typer.Option(None, "--sort", help="Sort by column (optionally add ASC/DESC)"),
-    info: bool = typer.Option(False, "-I", "--info", help="Show structure overview (columns, types, NULLs)"),
+    file: str = typer.Argument(None, help="数据文件路径（省略时从 stdin 读取）"),
+    preview: int = typer.Option(10, "-p", "--preview", help="显示前 N 行"),
+    stats: bool = typer.Option(False, "-s", "--stats", help="显示列统计"),
+    columns: str = typer.Option(None, "-c", "--columns", help="逗号分隔的列名"),
+    sort: str = typer.Option(None, "--sort", help="按列排序（可加 ASC/DESC）"),
+    info: bool = typer.Option(False, "-I", "--info", help="显示结构概览（列名、类型、NULL 数）"),
 ):
-    """Preview and explore a data file.
+    """预览和探查数据文件。
 
-    Default shows first 10 rows. Use -I/--info for structure overview.
-    Use -p/--preview to change row count (0 = show structure).
-    Use -s/--stats to see column statistics.
-    Use -c/--columns to select specific columns.
-    Use --sort to order by a column.
+    默认显示前 10 行。用 -I/--info 查看结构概览。
+    用 -p/--preview 指定行数（0 = 显示结构）。
+    用 -s/--stats 查看列统计。
+    用 -c/--columns 选列显示。
+    用 --sort 排序。
 
-    If no file is given, reads from stdin.
+    省略文件路径时从 stdin 读取。
     """
     import tempfile
 
@@ -186,15 +186,15 @@ def peek(
 
 @app.command()
 def convert(
-    src: str = typer.Argument(..., help="Source file path"),
-    dst: str = typer.Argument(..., help="Destination file path"),
-    where: str = typer.Option(None, "--where", help="SQL WHERE clause to filter rows"),
-    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
+    src: str = typer.Argument(..., help="源文件路径"),
+    dst: str = typer.Argument(..., help="目标文件路径"),
+    where: str = typer.Option(None, "--where", help="SQL 过滤条件（WHERE 子句）"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="跳过覆盖确认"),
 ):
-    """Convert a data file to another format.
+    """转换数据文件格式。
 
-    Output format is determined by the destination file extension.
-    Supported: .csv, .tsv, .parquet, .json, .jsonl
+    输出格式由目标文件扩展名自动推断。
+    支持的格式：.csv、.tsv、.parquet、.json、.jsonl、.xlsx
     """
     src_path = Path(src)
 
@@ -226,22 +226,22 @@ def convert(
 @app.command()
 def sql(
     query: str = typer.Argument(
-        ..., help="SQL query. Use 'filename' to reference files."
+        ..., help="SQL 查询语句（用单引号引用文件路径）"
     ),
     output: str = typer.Option(
-        None, "-o", "--output", help="Save results to file (format from extension)"
+        None, "-o", "--output", help="保存结果到文件（格式由扩展名推断）"
     ),
-    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="跳过覆盖确认"),
 ):
-    """Run a SQL query directly on data files.
+    """对数据文件执行 SQL 查询。
 
-    Files referenced in the query (e.g., 'data.csv') are automatically registered.
+    查询中引用的文件（如 'data.csv'）会自动注册为临时表。
 
-    Without -o, displays results. With -o, saves to file.
+    不加 -o 时显示结果，加 -o 时保存到文件。
 
-    Example:
-dv sql "FROM 'data.csv' SELECT * WHERE age > 30"
-dv sql "SELECT * FROM 'data.csv'" -o result.parquet
+    示例：
+        dv sql "FROM 'data.csv' SELECT * WHERE age > 30"
+        dv sql "SELECT * FROM 'data.csv'" -o result.parquet
     """
     con = duckdb.connect()
     tmp_path = None
@@ -278,22 +278,22 @@ dv sql "SELECT * FROM 'data.csv'" -o result.parquet
 
 @app.command()
 def cat(
-    files: list[str] = typer.Argument(..., help="Files to concatenate (2+)"),
-    preview: int = typer.Option(10, "-p", "--preview", help="Show first N rows"),
-    stats: bool = typer.Option(False, "-s", "--stats", help="Show column statistics"),
+    files: list[str] = typer.Argument(..., help="待拼接的文件路径（至少 2 个）"),
+    preview: int = typer.Option(10, "-p", "--preview", help="显示前 N 行"),
+    stats: bool = typer.Option(False, "-s", "--stats", help="显示列统计"),
     output: str = typer.Option(
-        None, "-o", "--output", help="Save to file (format from extension)"
+        None, "-o", "--output", help="保存到文件（格式由扩展名推断）"
     ),
-    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="跳过覆盖确认"),
 ):
-    """Concatenate multiple data files by row (UNION ALL BY NAME).
+    """按行拼接多个数据文件（UNION ALL BY NAME）。
 
-    Columns are aligned by name. Missing columns in any file are filled with NULL.
+    按列名自动对齐，各文件列数不同时缺失列自动填 NULL。
 
-    Examples:
-dv cat a.csv b.csv               Concat and preview structure
-dv cat a.csv b.csv -p 10         Concat and preview 10 rows
-dv cat part*.csv -o merged.parquet
+    示例：
+        dv cat a.csv b.csv               拼接并预览结构
+        dv cat a.csv b.csv -p 10         拼接后预览 10 行
+        dv cat part*.csv -o merged.parquet
     """
     if len(files) < 2:
         logger.error("Need at least 2 files to concatenate, got {}", len(files))
@@ -345,31 +345,31 @@ dv cat part*.csv -o merged.parquet
 
 @app.command()
 def join(
-    a: str = typer.Argument(..., help="Left table file path"),
-    b: str = typer.Argument(..., help="Right table file path"),
+    a: str = typer.Argument(..., help="左表文件路径"),
+    b: str = typer.Argument(..., help="右表文件路径"),
     on: str = typer.Option(
-        None, "--on", help="Join column: 'col' (same name) or 'a_col=b_col' (different names). Auto-detects if omitted."
+        None, "--on", help="JOIN 列名。同名列用 'gene'；不同名用 'probe=gene'。省略时自动检测。"
     ),
     how: str = typer.Option(
-        "inner", "--how", help="Join type: inner, left, right, outer"
+        "inner", "--how", help="JOIN 方式：inner、left、right、outer"
     ),
-    preview: int = typer.Option(10, "-p", "--preview", help="Show first N rows"),
-    stats: bool = typer.Option(False, "-s", "--stats", help="Show column statistics"),
+    preview: int = typer.Option(10, "-p", "--preview", help="显示前 N 行"),
+    stats: bool = typer.Option(False, "-s", "--stats", help="显示列统计"),
     output: str = typer.Option(
-        None, "-o", "--output", help="Save to file (format from extension)"
+        None, "-o", "--output", help="保存到文件（格式由扩展名推断）"
     ),
-    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="跳过覆盖确认"),
 ):
-    """Join two data files by a common column.
+    """按公共列合并两个数据文件。
 
-    Without --on, automatically detects a unique common column.
-    Use --how to choose join type (default: inner).
+    不指定 --on 时自动检测唯一共有列。
+    用 --how 选择合并方式（默认 inner）。
 
-    Examples:
-dv join deg.csv meta.csv                    Auto-detect join column
-dv join deg.csv meta.csv --on gene          Same-named column
-dv join expr.csv meta.csv --on probe=gene   Different column names
-dv join a.csv b.csv --on id --how left -o joined.parquet
+    示例：
+        dv join deg.csv meta.csv                    自动检测合并列
+        dv join deg.csv meta.csv --on gene          同名列合并
+        dv join expr.csv meta.csv --on probe=gene   不同名列合并
+        dv join a.csv b.csv --on id --how left -o joined.parquet
     """
     a_path, b_path = Path(a), Path(b)
 
@@ -450,21 +450,21 @@ dv join a.csv b.csv --on id --how left -o joined.parquet
 
 @app.command()
 def search(
-    pattern: str = typer.Argument(..., help="Regex pattern to search for"),
-    file: str = typer.Argument(..., help="Path to the data file"),
-    column: str = typer.Option(None, "--in", help="Limit search to one column"),
-    ignore_case: bool = typer.Option(False, "-i", "--ignore-case", help="Case-insensitive search"),
-    literal: bool = typer.Option(False, "-l", "--literal", help="Treat pattern as literal text, not regex"),
-    preview: int = typer.Option(10, "-p", "--preview", help="Show first N matching rows"),
-    output: str = typer.Option(None, "-o", "--output", help="Save results to file"),
-    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
+    pattern: str = typer.Argument(..., help="正则表达式"),
+    file: str = typer.Argument(..., help="数据文件路径"),
+    column: str = typer.Option(None, "--in", help="限定搜索某一列"),
+    ignore_case: bool = typer.Option(False, "-i", "--ignore-case", help="忽略大小写"),
+    literal: bool = typer.Option(False, "-l", "--literal", help="字面量搜索（非正则）"),
+    preview: int = typer.Option(10, "-p", "--preview", help="显示前 N 条匹配行"),
+    output: str = typer.Option(None, "-o", "--output", help="保存结果到文件"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="跳过覆盖确认"),
 ):
-    """Search for rows matching a regex pattern.
+    """正则搜索数据行。
 
-    Searches all text columns unless --in is specified.
-    Use -i for case-insensitive matching.
+    搜索所有文本列，除非用 --in 指定某列。
+    用 -i 忽略大小写。
 
-    Examples:
+    示例：
         dv search "TP53" data.csv
         dv search "TP53|BRCA1" data.csv --in gene -i
     """
@@ -532,15 +532,15 @@ def search(
 
 @app.command()
 def rename(
-    file: str = typer.Argument(..., help="Path to the data file"),
-    mapping: str = typer.Argument(..., help="Rename mapping: old=new or old1=new1,old2=new2"),
-    output: str = typer.Option(None, "-o", "--output", help="Save to file"),
-    info: bool = typer.Option(False, "-I", "--info", help="Show structure overview instead of preview"),
-    yes: bool = typer.Option(False, "-y", "--yes", help="Skip overwrite confirmation"),
+    file: str = typer.Argument(..., help="数据文件路径"),
+    mapping: str = typer.Argument(..., help="重命名规则：old=new 或 old1=new1,old2=new2"),
+    output: str = typer.Option(None, "-o", "--output", help="保存到文件"),
+    info: bool = typer.Option(False, "-I", "--info", help="显示结构概览，替代默认预览"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="跳过覆盖确认"),
 ):
-    """Rename columns in a data file.
+    """重命名数据文件中的列名。
 
-    Examples:
+    示例：
         dv rename data.csv column0=gene
         dv rename data.csv "id=gene_id,name=symbol"
         dv rename data.csv p_val_adj=padj -o cleaned.csv

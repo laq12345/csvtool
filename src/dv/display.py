@@ -125,7 +125,7 @@ def display_preview(
 
     table = _results_to_table(
         columns, rows,
-        title=f"Preview (first {len(rows)} rows)",
+        title=f"预览（前 {len(rows)} 行）",
         column_types=types,
     )
     console.print(table)
@@ -150,7 +150,7 @@ def display_stats(con: duckdb.DuckDBPyConnection) -> None:
     columns = [desc[0] for desc in result.description]
     rows = result.fetchall()
 
-    table = _results_to_table(columns, rows, title="Column Statistics")
+    table = _results_to_table(columns, rows, title="列统计")
     console.print(table)
     logger.debug("Displayed stats: {} columns", len(columns))
 
@@ -174,7 +174,7 @@ def display_query_result(
 
     table = _results_to_table(
         columns, rows,
-        title="Query Result",
+        title="查询结果",
         column_types=types,
     )
     console.print(table)

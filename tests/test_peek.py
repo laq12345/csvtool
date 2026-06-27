@@ -19,7 +19,7 @@ class TestPeekStructure:
 
     def test_shows_row_count(self):
         result = runner.invoke(app, ["peek", str(FIXTURES / "sample.csv")])
-        assert "5 rows" in result.stdout
+        assert "5 行" in result.stdout
 
     def test_shows_format(self):
         result = runner.invoke(app, ["peek", str(FIXTURES / "sample.csv"), "-I"])
@@ -44,8 +44,7 @@ class TestPeekStats:
     def test_stats(self):
         result = runner.invoke(app, ["peek", str(FIXTURES / "sample.csv"), "-s"])
         assert result.exit_code == 0
-        output = result.stdout.lower()
-        assert "count" in output or "column" in output or "approx" in output
+        assert "列统计" in result.stdout
 
     def test_stats_long_flag(self):
         result = runner.invoke(app, ["peek", str(FIXTURES / "sample.csv"), "--stats"])
